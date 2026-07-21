@@ -1,17 +1,30 @@
-import requests
-import os
+name: Website Monitor
 
-BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *'
 
-message = "✅ Xin chào!\n\nBot Website Monitor đã chạy thành công trên GitHub."
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
 
-url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-requests.post(
-    url,
-    json={
-        "chat_id": CHAT_ID,
-        "text": message
-    }
-)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install requests
+        run: |
+          pip install requests
+
+      - name: Run monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python monitor.py
