@@ -1,0 +1,11 @@
+{
+  "sites": [
+    {
+      "name": "Sun Group",
+      "enabled": true,
+      "type": "base_ehiring",
+      "url": "https://tuyendung.sungroup.com.vn/",
+      "job_url_prefix": "https://tuyendung.sungroup.com.vn/job/"
+    }
+  ]
+}
