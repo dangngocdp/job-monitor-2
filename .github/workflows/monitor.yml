@@ -3,12 +3,15 @@ name: Website Monitor
 on:
   workflow_dispatch:
   schedule:
+    # 01:00 UTC = 08:00 gio Viet Nam (UTC+7)
     - cron: '0 1 * * *'
+
+permissions:
+  contents: write
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -18,11 +21,23 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install requests
-        run: pip install requests
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Run monitor
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python monitor.py
+
+      - name: Commit history.json neu co thay doi
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add history.json
+          if git diff --cached --quiet; then
+            echo "Khong co thay doi trong history.json, bo qua commit."
+          else
+            git commit -m "Update history.json [skip ci]"
+            git push
+          fi
