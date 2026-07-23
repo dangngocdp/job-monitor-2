@@ -7,6 +7,41 @@
       "url": "https://tuyendung.sungroup.com.vn/",
       "job_url_prefix": "https://tuyendung.sungroup.com.vn/job/",
       "location_filter": ["Hà Nội"]
+    },
+    {
+      "name": "Vietcombank",
+      "enabled": true,
+      "type": "successfactors",
+      "url": "https://tuyendung.vietcombank.com.vn/go/Tr%E1%BB%A5-s%E1%BB%9F-ch%C3%ADnh/570444/",
+      "location_filter": ["Hà Nội"]
+    },
+    {
+      "name": "Techcombank",
+      "enabled": true,
+      "type": "successfactors",
+      "url": "https://www.techcombankjobs.com/search/?q=&location=Ha+Noi&sortColumn=referencedate&sortDirection=desc",
+      "location_filter": ["Ha Noi"]
+    },
+    {
+      "name": "VietinBank",
+      "enabled": true,
+      "type": "vietinbank",
+      "url": "https://tuyendung.vietinbank.vn/tuyendung/tuyen-dung/?keyWord=&nganhNghe=&noiLamViec=TP.%20H%C3%A0%20N%E1%BB%99i",
+      "location_filter": ["Hà Nội"]
+    },
+    {
+      "name": "MSB - NHTM va tieu dung",
+      "enabled": true,
+      "type": "msb",
+      "url": "https://jobs.msb.com.vn/jobs/search/1595595",
+      "location_filter": ["Hà Nội"]
+    },
+    {
+      "name": "MSB - Hanh chinh Van thu Thu ky",
+      "enabled": true,
+      "type": "msb",
+      "url": "https://jobs.msb.com.vn/landingpages/hnh-chnh-vn-th-th-k-a-opportunities-at-msb-5",
+      "location_filter": ["Hà Nội"]
     }
   ]
 }
