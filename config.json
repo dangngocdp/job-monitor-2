@@ -5,7 +5,8 @@
       "enabled": true,
       "type": "base_ehiring",
       "url": "https://tuyendung.sungroup.com.vn/",
-      "job_url_prefix": "https://tuyendung.sungroup.com.vn/job/"
+      "job_url_prefix": "https://tuyendung.sungroup.com.vn/job/",
+      "location_filter": ["Hà Nội"]
     }
   ]
 }

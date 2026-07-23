@@ -67,7 +67,25 @@ Nếu muốn đổi giờ chạy: sửa dòng `cron: '0 1 * * *'` trong file `.g
 
 ---
 
-## 5. Thêm website mới sau này (không cần sửa code)
+## 5. Bộ lọc theo địa điểm (đã bật sẵn: Hà Nội)
+
+Bot hiện chỉ gửi thông báo cho các tin tuyển dụng có địa điểm làm việc là **Hà Nội** (đọc từ dòng "Địa điểm:" trên trang chi tiết của từng tin). Tin ở tỉnh/thành khác vẫn được ghi nhận là "đã xử lý" để không quét lại, nhưng sẽ **không** gửi Telegram.
+
+Trường hợp bot không xác định được địa điểm của 1 tin (do lỗi mạng hoặc web đổi giao diện), bot vẫn **gửi thông báo kèm cảnh báo** "không xác định được, vui lòng kiểm tra" — để tránh bỏ sót tin quan trọng.
+
+Muốn đổi/thêm địa điểm lọc, hoặc **tắt bộ lọc để nhận tất cả tin** (mọi tỉnh/thành): mở `config.json`, sửa dòng `location_filter`:
+
+```json
+"location_filter": ["Hà Nội"]              // chỉ nhận tin Hà Nội (mặc định hiện tại)
+"location_filter": ["Hà Nội", "Đà Nẵng"]   // nhận tin Hà Nội HOẶC Đà Nẵng
+"location_filter": []                       // tắt lọc, nhận TẤT CẢ tin mọi địa điểm
+```
+
+Tên địa điểm phải viết **đúng chính tả và dấu** như trên trang web (ví dụ: `Hà Nội`, `Đà Nẵng`, `Thành phố Hồ Chí Minh`) để bot so khớp chính xác.
+
+---
+
+## 6. Thêm website mới sau này (không cần sửa code)
 
 Nếu website mới đó **cũng chạy trên nền tảng Base E-Hiring** (base.vn) — đây là nền tảng tuyển dụng rất phổ biến ở Việt Nam, nhiều công ty lớn dùng — bạn chỉ cần mở `config.json` và thêm 1 khối như sau:
 
@@ -98,7 +116,7 @@ Nếu website mới dùng nền tảng **khác** (không phải Base.vn), gửi 
 
 ---
 
-## 6. Xử lý sự cố thường gặp
+## 7. Xử lý sự cố thường gặp
 
 | Hiện tượng | Nguyên nhân có thể | Cách xử lý |
 |---|---|---|
@@ -109,7 +127,7 @@ Nếu website mới dùng nền tảng **khác** (không phải Base.vn), gửi 
 
 ---
 
-## 7. Bảo mật
+## 8. Bảo mật
 
 - `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID` **không** nằm trong code, chỉ nằm trong GitHub Secrets (đã cấu hình sẵn từ trước, không cần làm lại).
 - Repository này có thể để **public** vì không có thông tin nhạy cảm nào trong code hay trong `history.json` (chỉ có số ID và tiêu đề tin tuyển dụng công khai).

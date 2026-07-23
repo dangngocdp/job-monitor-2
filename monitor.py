@@ -174,6 +174,43 @@ PARSERS = {
 
 
 # ---------------------------------------------------------------------------
+# Doc dia diem tu trang CHI TIET cua 1 tin tuyen dung (dung cho bo loc dia diem)
+# ---------------------------------------------------------------------------
+
+OFFICE_LINK_PATTERN = re.compile(r"/jobs\?office=\d+")
+
+
+def get_job_locations(job_url: str) -> list:
+    """
+    Mo trang chi tiet cua 1 tin tuyen dung va doc danh sach dia diem.
+    Tren Base E-Hiring, dong "Dia diem:" luon la cac the <a> tro toi
+    duong dan dang "/jobs?office=<id>", vi du:
+        Dia diem: <a href="...jobs?office=73">Bac Ninh</a>, <a href="...jobs?office=91">Ha Noi</a>
+    Tra ve list ten dia diem, vi du: ["Bac Ninh", "Ha Noi"]
+    Neu khong doc duoc (loi mang, doi giao dien...) tra ve list rong.
+    """
+    html = fetch_html(job_url)
+    soup = BeautifulSoup(html, "html.parser")
+
+    locations = []
+    for a_tag in soup.find_all("a", href=True):
+        if OFFICE_LINK_PATTERN.search(a_tag["href"]):
+            text = a_tag.get_text(strip=True)
+            if text:
+                locations.append(text)
+    return locations
+
+
+def location_matches_filter(locations: list, location_filter: list) -> bool:
+    """So sanh khong phan biet hoa/thuong, khong phan biet dau cach thua."""
+    normalized_locations = {loc.strip().lower() for loc in locations}
+    for target in location_filter:
+        if target.strip().lower() in normalized_locations:
+            return True
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Xu ly logic chinh cho 1 site
 # ---------------------------------------------------------------------------
 
@@ -257,27 +294,67 @@ def process_site(site: dict, history: dict) -> bool:
 
     logger.info("[%s] Phat hien %d tin tuyen dung MOI.", name, len(new_jobs))
 
-    sent_ids = []
+    location_filter = [loc for loc in site.get("location_filter", []) if loc.strip()]
+
+    processed_ids = []  # tat ca ID da xu ly xong (du co gui hay khong) -> ghi vao history
     for job in new_jobs:
+        locations = []
+        location_unknown = False
+
+        if location_filter:
+            try:
+                locations = get_job_locations(job["url"])
+            except requests.RequestException as exc:
+                logger.warning(
+                    "[%s] Khong doc duoc dia diem cua tin '%s' (%s). Se van gui "
+                    "thong bao de tranh bo sot.", name, job["title"], exc,
+                )
+                location_unknown = True
+
+            if not locations and not location_unknown:
+                logger.warning(
+                    "[%s] Khong tim thay thong tin dia diem cho tin '%s'. Se van "
+                    "gui thong bao de tranh bo sot.", name, job["title"],
+                )
+                location_unknown = True
+
+            if not location_unknown and not location_matches_filter(locations, location_filter):
+                logger.info(
+                    "[%s] Bo qua (khong dung khu vuc loc): %s | Dia diem: %s",
+                    name, job["title"], ", ".join(locations),
+                )
+                processed_ids.append(job["id"])
+                continue
+
+        # Xay dung noi dung tin nhan
+        if locations:
+            location_line = f"\n📍 Địa điểm: {', '.join(locations)}"
+        elif location_filter:
+            location_line = "\n📍 Địa điểm: (không xác định được, vui lòng kiểm tra)"
+        else:
+            location_line = ""
+
         message = (
             f"🆕 <b>Tin tuyen dung moi - {name}</b>\n\n"
-            f"<b>{job['title']}</b>\n"
+            f"<b>{job['title']}</b>"
+            f"{location_line}\n"
             f"{job['url']}"
         )
         ok = send_telegram_message(message)
         if ok:
-            sent_ids.append(job["id"])
+            processed_ids.append(job["id"])
             logger.info("[%s] Da gui: %s", name, job["title"])
         else:
             logger.error(
                 "[%s] Gui that bai, se thu lai o lan chay sau: %s",
                 name, job["title"],
             )
+            # KHONG them vao processed_ids -> lan sau se thu gui lai
         time.sleep(0.5)  # tranh gui qua nhanh bi Telegram gioi han toc do
 
-    # Chi ghi vao history nhung job da gui THANH CONG.
+    # Chi ghi vao history nhung job da xu ly xong (gui thanh cong hoac bi loc bo).
     # Job gui that bai se duoc thu lai o lan chay tiep theo.
-    updated_ids = list(known_ids | set(sent_ids))
+    updated_ids = list(known_ids | set(processed_ids))
     history[name] = updated_ids[-MAX_HISTORY_IDS_PER_SITE:]
 
     return True
