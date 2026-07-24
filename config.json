@@ -42,6 +42,14 @@
       "type": "msb",
       "url": "https://jobs.msb.com.vn/landingpages/hnh-chnh-vn-th-th-k-a-opportunities-at-msb-5",
       "location_filter": ["Hà Nội"]
+    },
+    {
+      "name": "MBBank",
+      "enabled": true,
+      "type": "mbbank_api",
+      "url": "https://careers.mbbank.com.vn/libra-job-management/public/recruitment-news?workGroupId=&name=&skillTags=&city=&size=100&page=0&type=HO&region=TX104&subRegion=&typicalSkills=&currentProvinceCode=&permanentProvinceCode=",
+      "listing_url": "https://careers.mbbank.com.vn/list-of-posts?type=HO&region=TX104",
+      "location_filter": ["Hà Nội"]
     }
   ]
 }

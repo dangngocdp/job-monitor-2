@@ -107,6 +107,12 @@ def fetch_html(url: str) -> str:
     return resp.text
 
 
+def fetch_json(url: str) -> dict:
+    resp = requests.get(url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT)
+    resp.raise_for_status()
+    return resp.json()
+
+
 def load_json(path: Path, default):
     if not path.exists():
         return default
@@ -344,17 +350,114 @@ def parse_msb(html: str, site: dict) -> list:
     return jobs
 
 
+def parse_mbbank_api(html: str, site: dict) -> list:
+    """
+    MBBank (careers.mbbank.com.vn) khong the doc bang HTML thong thuong vi
+    trang nay la ung dung JavaScript thuan (SPA). Thay vao do, ta goi THANG
+    vao API JSON noi bo ma chinh trang web do dung de lay du lieu
+    (tim thay qua tab Network cua trinh duyet).
+
+    API tra ve JSON dang: {"content": [{id, name, province, toDate, ...}], ...}
+    Moi tin da co san "province" (dia diem) ngay trong du lieu -> khong can
+    mo them trang nao khac de loc dia diem.
+
+    "url" trong config.json o day chinh la DUONG DAN API (khong phai duong
+    dan trang web binh thuong).
+    """
+    data = json.loads(html)
+    job_url_template = site.get("job_url_template")  # vd: "https://careers.mbbank.com.vn/job-detail/{id}"
+
+    jobs = []
+    for item in data.get("content", []):
+        job_id = str(item.get("id", "")).strip()
+        if not job_id:
+            continue
+        title = item.get("name") or f"Tin tuyen dung #{job_id}"
+        province = item.get("province") or ""
+
+        if job_url_template:
+            job_url = job_url_template.format(id=job_id)
+        else:
+            # Chua biet duong dan chi tiet tung tin -> tam dung link trang danh sach
+            job_url = site.get("listing_url", site["url"])
+
+        jobs.append({
+            "id": job_id,
+            "title": title,
+            "url": job_url,
+            "location_text": province,
+            "needs_detail_fetch_for_location": False,
+        })
+
+    return jobs
+
+
 PARSERS = {
     "base_ehiring": parse_base_ehiring,
     "successfactors": parse_successfactors,
     "vietinbank": parse_vietinbank,
     "msb": parse_msb,
+    "mbbank_api": parse_mbbank_api,
 }
 
 # Voi mot so loai website, trang danh sach khong co san dia diem, phai mo
 # them trang chi tiet cua TUNG TIN MOI de doc. Ham tuong ung duoc khai bao o day.
 DETAIL_LOCATION_FETCHERS = {
     "base_ehiring": get_location_base_ehiring,
+}
+
+
+# ---------------------------------------------------------------------------
+# MBBank: dung API JSON rieng (khong phai HTML) -> xu ly rieng, khong dung
+# chung khuon "fetch_html + parser(html, site)" nhu cac site khac.
+# ---------------------------------------------------------------------------
+
+def fetch_and_parse_mbbank(site: dict) -> list:
+    """
+    MBBank tra ve du lieu qua API JSON dang phan trang, vi du:
+        .../recruitment-news?...&page=0&region=TX104&type=HO...
+
+    QUAN TRONG - GIOI HAN: API nay khong co truong link/slug rieng cho tung
+    tin, nen bot se dinh kem LINK TRANG DANH SACH (site["listing_url"]) cho
+    moi thong bao thay vi link thang toi tin do.
+
+    De tranh bo sot tin moi (vi khong chac API sap xep tin moi nhat truoc),
+    bot se quet HET tat ca cac trang (dua vao "totalPages"/"last" API tra ve)
+    thay vi chi quet trang dau.
+    """
+    api_url = site["api_url"]
+    listing_url = site.get("listing_url", api_url)
+
+    all_jobs = []
+    page = 0
+    max_pages_safety = 50  # phong ho vong lap vo han neu API loi
+
+    while page < max_pages_safety:
+        page_url = re.sub(r"([?&]page=)\d+", rf"\g<1>{page}", api_url)
+        data = fetch_json(page_url)
+        items = data.get("content", [])
+
+        for item in items:
+            all_jobs.append({
+                "id": str(item.get("id", "")),
+                "title": item.get("name") or f"Tin tuyen dung #{item.get('id')}",
+                "url": listing_url,
+                "location_text": item.get("province") or "",
+                "needs_detail_fetch_for_location": False,
+            })
+
+        if data.get("last", True) or not items:
+            break
+        page += 1
+
+    return [job for job in all_jobs if job["id"]]
+
+
+# Cac site KHONG dung khuon HTML thong thuong (fetch_html + parser) ma tu xu
+# ly toan bo (goi API JSON, tu phan trang...). Ham nhan vao (site) va tra ve
+# luon list jobs, khong nhan tham so html.
+CUSTOM_SITE_HANDLERS = {
+    "mbbank": fetch_and_parse_mbbank,
 }
 
 
@@ -380,34 +483,55 @@ def process_site(site: dict, history: dict) -> bool:
         return False
 
     site_type = site.get("type")
+    is_custom = site_type in CUSTOM_SITE_HANDLERS
     parser = PARSERS.get(site_type)
-    if parser is None:
+
+    if not is_custom and parser is None:
         logger.error(
             "[%s] Khong tim thay parser cho type='%s'. Kiem tra lai config.json.",
             name, site_type,
         )
         return False
 
-    logger.info("[%s] Dang tai trang: %s", name, site.get("url"))
-    try:
-        html = fetch_html(site["url"])
-    except requests.RequestException as exc:
-        logger.error("[%s] Khong tai duoc trang web: %s", name, exc)
-        send_telegram_message(
-            f"⚠️ <b>{name}</b>\nKhong the tai website de kiem tra tin tuyen dung.\n"
-            f"Loi: {exc}"
-        )
-        return False
+    if is_custom:
+        logger.info("[%s] Dang goi API rieng...", name)
+        try:
+            jobs = CUSTOM_SITE_HANDLERS[site_type](site)
+        except requests.RequestException as exc:
+            logger.error("[%s] Khong goi duoc API: %s", name, exc)
+            send_telegram_message(
+                f"⚠️ <b>{name}</b>\nKhong the tai du lieu de kiem tra tin tuyen dung.\n"
+                f"Loi: {exc}"
+            )
+            return False
+        except Exception as exc:  # noqa: BLE001
+            logger.error("[%s] Loi khi xu ly du lieu API: %s", name, exc)
+            send_telegram_message(
+                f"⚠️ <b>{name}</b>\nCo loi khi doc du lieu tu website (co the API da "
+                f"thay doi cau truc). Can kiem tra lai script.\nLoi: {exc}"
+            )
+            return False
+    else:
+        logger.info("[%s] Dang tai trang: %s", name, site.get("url"))
+        try:
+            html = fetch_html(site["url"])
+        except requests.RequestException as exc:
+            logger.error("[%s] Khong tai duoc trang web: %s", name, exc)
+            send_telegram_message(
+                f"⚠️ <b>{name}</b>\nKhong the tai website de kiem tra tin tuyen dung.\n"
+                f"Loi: {exc}"
+            )
+            return False
 
-    try:
-        jobs = parser(html, site)
-    except Exception as exc:  # noqa: BLE001 - can log het moi loai loi parser
-        logger.error("[%s] Loi khi phan tich HTML: %s", name, exc)
-        send_telegram_message(
-            f"⚠️ <b>{name}</b>\nCo loi khi phan tich noi dung website (co the web da "
-            f"thay doi giao dien). Can kiem tra lai script.\nLoi: {exc}"
-        )
-        return False
+        try:
+            jobs = parser(html, site)
+        except Exception as exc:  # noqa: BLE001 - can log het moi loai loi parser
+            logger.error("[%s] Loi khi phan tich HTML: %s", name, exc)
+            send_telegram_message(
+                f"⚠️ <b>{name}</b>\nCo loi khi phan tich noi dung website (co the web da "
+                f"thay doi giao dien). Can kiem tra lai script.\nLoi: {exc}"
+            )
+            return False
 
     logger.info("[%s] Tim thay %d tin tuyen dung tren trang.", name, len(jobs))
 
