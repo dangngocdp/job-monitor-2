@@ -49,6 +49,7 @@
       "type": "mbbank_api",
       "url": "https://careers.mbbank.com.vn/libra-job-management/public/recruitment-news?workGroupId=&name=&skillTags=&city=&size=100&page=0&type=HO&region=TX104&subRegion=&typicalSkills=&currentProvinceCode=&permanentProvinceCode=",
       "listing_url": "https://careers.mbbank.com.vn/list-of-posts?type=HO&region=TX104",
+      "job_url_template": "https://careers.mbbank.com.vn/list-of-posts/detail-list-of-posts?id={id}&workGroupId={workGroupId}",
       "location_filter": ["Hà Nội"]
     }
   ]
