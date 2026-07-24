@@ -376,7 +376,7 @@ def parse_mbbank_api(html: str, site: dict) -> list:
         province = item.get("province") or ""
 
         if job_url_template:
-            job_url = job_url_template.format(id=job_id)
+            job_url = job_url_template.format(id=job_id, workGroupId=item.get("workGroupId", ""))
         else:
             # Chua biet duong dan chi tiet tung tin -> tam dung link trang danh sach
             job_url = site.get("listing_url", site["url"])
