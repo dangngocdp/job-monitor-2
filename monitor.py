@@ -392,12 +392,99 @@ def parse_mbbank_api(html: str, site: dict) -> list:
     return jobs
 
 
+def parse_talentnetwork(html: str, site: dict) -> list:
+    """
+    Nen tang Talentnetwork/CareerViet - vd: SHB (tuyendung.shb.com.vn).
+
+    Nhan dien: moi tin la 1 the <a href=".../viec-lam/<slug>.<ma-hex>.html">.
+    Ma hex truoc ".html" la ID duy nhat, khong doi -> dung lam khoa chong trung.
+
+    Dia diem hien thi dang chu "Noi lam viec: ..." ngay ke ben tieu de tin
+    tren trang danh sach -> quet tuan tu theo thu tu xuat hien trong HTML de
+    ghep dia diem vao dung tin (khong can mo them trang nao).
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    job_pattern = re.compile(r"/viec-lam/[^/?]+\.([0-9a-fA-F]{6,})\.html")
+
+    jobs = []
+    current = None
+
+    for el in soup.descendants:
+        if getattr(el, "name", None) == "a" and el.has_attr("href"):
+            href = urljoin(site["url"], el["href"].strip())
+            m = job_pattern.search(href)
+            if m:
+                job_id = m.group(1)
+                title = el.get_text(strip=True)
+                if title and (current is None or current["id"] != job_id):
+                    if current is not None:
+                        jobs.append(current)
+                    current = {
+                        "id": job_id,
+                        "title": title,
+                        "url": href,
+                        "location_text": "",
+                        "needs_detail_fetch_for_location": False,
+                    }
+                continue
+        elif isinstance(el, str) and current is not None and not current["location_text"]:
+            text = el.strip()
+            if text.startswith("Nơi làm việc:"):
+                current["location_text"] = text[len("Nơi làm việc:"):].strip()
+
+    if current is not None:
+        jobs.append(current)
+
+    return jobs
+
+
+def parse_iviec_api(html: str, site: dict) -> list:
+    """
+    Nen tang iviec.vn (centralize-api-v2.iviec.vn) - vd: TPBank, SunPhuQuoc Airways.
+
+    Day la API JSON noi bo (tim qua F12 Network), tra ve du lieu day du:
+    tieu de, ma "slug" de dung link, va danh sach dia diem lam viec
+    (workingNewAddresses) -> khong can mo them trang nao khac.
+
+    "url" trong config.json la duong dan API. "job_url_prefix" la duong dan
+    trang web cong khai de ghep voi slug thanh link cho tung tin.
+    """
+    data = json.loads(html)
+    prefix = site.get("job_url_prefix", "")
+
+    jobs = []
+    for item in data.get("items", []):
+        job_id = str(item.get("id", "")).strip()
+        if not job_id:
+            continue
+
+        title = item.get("name") or f"Tin tuyen dung #{job_id}"
+        slug = item.get("slug", "")
+        job_url = f"{prefix}{slug}" if (prefix and slug) else site.get("listing_url", site["url"])
+
+        addresses = item.get("workingNewAddresses") or []
+        locations = [a.get("provinceName") for a in addresses if a.get("provinceName")]
+        location_text = ", ".join(locations)
+
+        jobs.append({
+            "id": job_id,
+            "title": title,
+            "url": job_url,
+            "location_text": location_text,
+            "needs_detail_fetch_for_location": False,
+        })
+
+    return jobs
+
+
 PARSERS = {
     "base_ehiring": parse_base_ehiring,
     "successfactors": parse_successfactors,
     "vietinbank": parse_vietinbank,
     "msb": parse_msb,
     "mbbank_api": parse_mbbank_api,
+    "talentnetwork": parse_talentnetwork,
+    "iviec_api": parse_iviec_api,
 }
 
 # Voi mot so loai website, trang danh sach khong co san dia diem, phai mo

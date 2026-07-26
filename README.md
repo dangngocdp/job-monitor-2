@@ -105,9 +105,12 @@ Muốn đổi/thêm địa điểm lọc cho từng site, hoặc **tắt bộ l�
 | Sun Group | ✅ Hoạt động đầy đủ | Có link riêng từng tin |
 | Vietcombank | ✅ Hoạt động đầy đủ | Có link riêng từng tin |
 | Techcombank | ✅ Hoạt động đầy đủ | Có link riêng từng tin |
-| VietinBank | ⚠️ Hoạt động có giới hạn | Trang này **không có link riêng cho từng tin** tuyển dụng (nút "Ứng tuyển" chạy bằng JavaScript). Bot vẫn phát hiện tin mới và gửi thông báo bình thường, nhưng link đính kèm trong Telegram sẽ là **link trang danh sách** (đã lọc sẵn Hà Nội) thay vì link thẳng đến tin đó. Bạn cần tự tìm tin đó trong danh sách khi bấm vào link. |
+| VietinBank | ⏸️ Tạm tắt | Trang này tải danh sách tin bằng JavaScript nên bot không đọc được qua cách quét HTML thông thường; chưa tìm ra API đúng. Đã tắt (`enabled: false`) để không báo lỗi hàng ngày, code vẫn giữ nguyên để bật lại khi có thông tin API đúng. |
 | MSB (2 mục) | ✅ Hoạt động đầy đủ | Có link riêng từng tin |
 | MBBank | ⚠️ Hoạt động có giới hạn (tạm thời) | Đọc dữ liệu qua API JSON nội bộ — rất ổn định. Nhưng **hiện chưa có link thẳng đến từng tin cụ thể** (đang chờ bạn cung cấp), nên tạm thời thông báo sẽ kèm link trang danh sách chung. Sẽ tự cập nhật thành link riêng ngay khi có thông tin. |
+| SHB | ✅ Hoạt động đầy đủ | Có link riêng từng tin, địa điểm đọc trực tiếp trên trang danh sách |
+| TPBank | ✅ Hoạt động đầy đủ | Đọc qua API JSON nội bộ (nền tảng iviec.vn), rất ổn định |
+| SunPhuQuoc Airways | ✅ Hoạt động đầy đủ | Cùng nền tảng iviec.vn với TPBank, đọc qua API JSON |
 
 ### Cách lấy link API cho website JS-only (áp dụng cho MBBank và các site tương tự sau này)
 
