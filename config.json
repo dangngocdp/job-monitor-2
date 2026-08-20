@@ -30,6 +30,13 @@
       "location_filter": ["Hà Nội"]
     },
     {
+      "name": "VietinBank (qua VietnamWorks)",
+      "enabled": true,
+      "type": "vietnamworks_company",
+      "url": "https://www.vietnamworks.com/nha-tuyen-dung/ngan-hang-tmcp-cong-thuong-viet-nam-vietinbank-c34511?fromPage=jobDetail",
+      "location_filter": ["Hà Nội"]
+    },
+    {
       "name": "SHB",
       "enabled": true,
       "type": "talentnetwork",
@@ -75,6 +82,23 @@
       "url": "https://centralize-api-v2.iviec.vn/api/recruitment/Recruitment/GetRecruitmentsByDomain?pageIndex=1&pageSize=100&Domain=talent.sunphuquocairways.com",
       "job_url_prefix": "https://talent.sunphuquocairways.com/vi/jobs/",
       "listing_url": "https://talent.sunphuquocairways.com/vi/jobs",
+      "location_filter": ["Hà Nội"]
+    },
+    {
+      "name": "LPBank",
+      "enabled": true,
+      "type": "iviec_api",
+      "url": "https://centralize-api-v2.iviec.vn/api/recruitment/Recruitment/GetRecruitmentsByDomain?pageIndex=1&pageSize=100&Domain=tuyendung.lpbank.com.vn",
+      "job_url_prefix": "https://tuyendung.lpbank.com.vn/vi/jobs/",
+      "listing_url": "https://tuyendung.lpbank.com.vn/vi/jobs",
+      "location_filter": ["Hà Nội"]
+    },
+    {
+      "name": "BIDV",
+      "enabled": true,
+      "type": "bidv_api",
+      "url": "https://tuyendung.bidv.com.vn/GetAllTinTuyenDung",
+      "listing_url": "https://tuyendung.bidv.com.vn/danh-sach-viec-lam-moi.html",
       "location_filter": ["Hà Nội"]
     }
   ]
