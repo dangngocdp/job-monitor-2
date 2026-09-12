@@ -23,6 +23,13 @@
       "location_filter": ["Ha Noi"]
     },
     {
+      "name": "VPBank",
+      "enabled": true,
+      "type": "successfactors",
+      "url": "https://tuyendung.vpbank.com.vn/search/?locale=vi_VN&markerViewed=&carouselIndex=&facetFilters=%7B%22sfstd_jobLocation_obj%22%3A%5B%22H%C3%A0+N%E1%BB%99i%22%5D%7D&pageNumber=0",
+      "location_filter": ["Hà Nội"]
+    },
+    {
       "name": "VietinBank",
       "enabled": false,
       "type": "vietinbank",
@@ -37,11 +44,39 @@
       "location_filter": ["Hà Nội"]
     },
     {
+      "name": "NCB (qua VietnamWorks)",
+      "enabled": true,
+      "type": "vietnamworks_company",
+      "url": "https://www.vietnamworks.com/nha-tuyen-dung/ngan-hang-tmcp-quoc-dan-ncb-c171670?fromPage=jobDetail",
+      "location_filter": ["Hà Nội"]
+    },
+    {
       "name": "SHB",
       "enabled": true,
       "type": "talentnetwork",
       "url": "https://tuyendung.shb.com.vn/tim-viec-lam/tai-ha-noi.4/vi",
       "location_filter": ["Hà Nội"]
+    },
+    {
+      "name": "PVcomBank",
+      "enabled": true,
+      "type": "talentnetwork",
+      "url": "https://tuyendung.pvcombank.com.vn/tim-viec-lam/tai-ha-noi.4/vi",
+      "location_filter": ["Hà Nội"]
+    },
+    {
+      "name": "BacA Bank",
+      "enabled": true,
+      "type": "talentnetwork",
+      "url": "https://tuyendung.baca-bank.vn/tim-viec-lam/tai-ha-noi.4/vi",
+      "location_filter": ["Hà Nội"]
+    },
+    {
+      "name": "SeABank",
+      "enabled": true,
+      "type": "seabank_api",
+      "url": "https://tuyendung.seabank.com.vn/jobs?page=1&keywords=&industry=&jobLocations=4",
+      "location_filter": []
     },
     {
       "name": "MSB - NHTM va tieu dung",

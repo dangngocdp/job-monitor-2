@@ -6,18 +6,22 @@ Neu phat hien tin tuyen dung MOI (chua tung gui) -> gui thong bao qua Telegram.
 Da gui roi thi khong gui lai (luu vet trong history.json).
 
 Ho tro loc theo dia diem (vi du: chi bao tin o Ha Noi) qua "location_filter"
-trong config.json cua tung site.
+trong config.json cua tung site. Mac dinh so khop kieu "any" (chi can 1 trong
+cac tu khoa xuat hien). Neu can bat buoc TAT CA tu khoa phai xuat hien cung
+luc (vi du: vua Ha Noi VUA phong ban Hoi so), dat them
+"location_filter_mode": "all" trong config cua site do.
 
 Cac "type" website dang ho tro (xem PARSERS o cuoi file):
 - base_ehiring          : nen tang Base E-Hiring (base.vn)      - vd: Sun Group
-- successfactors        : nen tang SAP SuccessFactors            - vd: Vietcombank, Techcombank
+- successfactors        : nen tang SAP SuccessFactors            - vd: Vietcombank, Techcombank, VPBank
 - vietinbank            : trang tuyen dung rieng cua VietinBank (hien dang TAT, xem config)
 - msb                   : nen tang PhenomPeople cua MSB
 - mbbank_api            : API JSON rieng cua MBBank
-- talentnetwork         : nen tang Talentnetwork/CareerViet      - vd: SHB
+- talentnetwork         : nen tang Talentnetwork/CareerViet      - vd: SHB, PVcomBank, BacA Bank
 - iviec_api             : nen tang iviec.vn                      - vd: TPBank, SunPhuQuoc Airways, LPBank
 - bidv_api              : API JSON rieng cua BIDV
-- vietnamworks_company  : trang cong ty tren VietnamWorks (dung chung cho nhieu cong ty)
+- vietnamworks_company  : trang cong ty tren VietnamWorks (dung chung cho nhieu cong ty) - vd: VietinBank, NCB
+- seabank_api           : nen tang rieng cua SeABank
 
 Them website MOI cung nen tang voi 1 trong cac loai tren -> chi can them block
 trong config.json, KHONG can sua file nay.
@@ -52,7 +56,6 @@ REQUEST_HEADERS = {
     )
 }
 
-# So luong ID toi da luu lai cho moi site trong history.json (tranh file phinh to vo han)
 MAX_HISTORY_IDS_PER_SITE = 3000
 
 logging.basicConfig(
@@ -68,7 +71,6 @@ logger = logging.getLogger("job_monitor")
 # ---------------------------------------------------------------------------
 
 def send_telegram_message(text: str) -> bool:
-    """Gui 1 tin nhan Telegram. Tra ve True/False, KHONG lam crash chuong trinh."""
     bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 
@@ -103,7 +105,7 @@ def send_telegram_message(text: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Tien ich chung: tai HTML/JSON, doc/ghi file JSON
+# Tien ich chung
 # ---------------------------------------------------------------------------
 
 def fetch_html(url: str) -> str:
@@ -129,27 +131,11 @@ def save_json(path: Path, data) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Cac ham parser theo tung "type" khai bao trong config.json
-#
-# Moi ham parser nhan vao (html, site_config) va tra ve list cac dict:
-#   {
-#     "id": "<id duy nhat, khong doi>",
-#     "title": "<ten tin tuyen dung>",
-#     "url": "<link toi tin (co the la link trang danh sach neu web khong ho tro deep-link)>",
-#     "location_text": "<chuoi mo ta dia diem, dung de loc; de rong neu khong biet>",
-#     "needs_detail_fetch_for_location": True/False (mac dinh False)
-#   }
+# Cac ham parser
 # ---------------------------------------------------------------------------
 
 def parse_base_ehiring(html: str, site: dict) -> list:
-    """
-    Nen tang Base E-Hiring (base.vn) - vd: tuyendung.sungroup.com.vn
-
-    Nhan dien: moi tin la 1 the <a href="...job/<slug>-<id>">.
-    ID la day so o cuoi slug -> dung lam khoa chong trung.
-    Trang danh sach KHONG co san dia diem -> phai mo them trang chi tiet
-    cua tung tin MOI de doc dia diem (xem get_location_base_ehiring).
-    """
+    """Nen tang Base E-Hiring (base.vn) - vd: Sun Group."""
     prefix = site["job_url_prefix"]
     soup = BeautifulSoup(html, "html.parser")
 
@@ -188,7 +174,6 @@ OFFICE_LINK_PATTERN = re.compile(r"/jobs\?office=\d+")
 
 
 def get_location_base_ehiring(job_url: str) -> str:
-    """Mo trang chi tiet 1 tin Base E-Hiring, doc dong 'Dia diem:'."""
     html = fetch_html(job_url)
     soup = BeautifulSoup(html, "html.parser")
     locations = []
@@ -201,13 +186,7 @@ def get_location_base_ehiring(job_url: str) -> str:
 
 
 def parse_successfactors(html: str, site: dict) -> list:
-    """
-    Nen tang SAP SuccessFactors Recruiting - vd: Vietcombank, Techcombank.
-
-    Nhan dien: moi tin la 1 the <a href=".../job/<slug>/<id>/">.
-    Dia diem nam trong cung 1 dong (<tr>) voi link tieu de -> lay het text
-    trong dong do de dung cho bo loc dia diem (khong can mo them trang nao).
-    """
+    """Nen tang SAP SuccessFactors - vd: Vietcombank, Techcombank, VPBank."""
     soup = BeautifulSoup(html, "html.parser")
     job_pattern = re.compile(r"/job/[^/?]+/(\d+)/?")
 
@@ -239,19 +218,7 @@ def parse_successfactors(html: str, site: dict) -> list:
 
 
 def parse_vietinbank(html: str, site: dict) -> list:
-    """
-    Trang tuyen dung rieng cua VietinBank (KHONG dung nen tang chung nao).
-    HIEN DANG TAT trong config.json (enabled: false) vi chua tim duoc dung
-    API tra ve danh sach tin tuyen dung that (chi tim duoc API danh muc chuc
-    danh chung, khong co dia diem/ngay dang). Giu lai ham nay de bat lai
-    trong tuong lai neu tim duoc API dung.
-
-    QUAN TRONG - GIOI HAN: trang nay KHONG co link rieng cho tung tin (nut
-    "Ung tuyen" chay bang JavaScript), nen bot khong the lay duoc link chi
-    tiet tung tin. Bot se dung link CUA TRANG DANH SACH (site["url"]) cho
-    moi thong bao, va tu tao ID duy nhat tu noi dung tin (tieu de + phong
-    ban + ngay dang) vi khong co ID that tu website.
-    """
+    """Trang rieng cua VietinBank - HIEN DANG TAT (xem config.json)."""
     import hashlib
 
     soup = BeautifulSoup(html, "html.parser")
@@ -288,15 +255,7 @@ def parse_vietinbank(html: str, site: dict) -> list:
 
 
 def parse_msb(html: str, site: dict) -> list:
-    """
-    Nen tang PhenomPeople cua MSB (jobs.msb.com.vn).
-
-    Ho tro ca 2 kieu trang cua MSB:
-    - Trang ket qua tim kiem (/jobs/search/...): dia diem hien la CHU THUONG
-      "Dia diem: ..." ngay sau tieu de.
-    - Trang landing page (/landingpages/...): dia diem hien la 1 the <a>
-      rieng (dang link "kinh nhom") ngay sau tieu de.
-    """
+    """Nen tang PhenomPeople cua MSB."""
     soup = BeautifulSoup(html, "html.parser")
 
     job_pattern = re.compile(r"/jobs/[^/?]+-(\d+)/?$")
@@ -345,16 +304,7 @@ def parse_msb(html: str, site: dict) -> list:
 
 
 def parse_mbbank_api(html: str, site: dict) -> list:
-    """
-    MBBank (careers.mbbank.com.vn) khong the doc bang HTML thong thuong vi
-    trang nay la ung dung JavaScript thuan (SPA). Thay vao do, ta goi THANG
-    vao API JSON noi bo ma chinh trang web do dung de lay du lieu
-    (tim thay qua tab Network cua trinh duyet).
-
-    API tra ve JSON dang: {"content": [{id, name, province, toDate, ...}], ...}
-    Moi tin da co san "province" (dia diem) ngay trong du lieu -> khong can
-    mo them trang nao khac de loc dia diem.
-    """
+    """API JSON rieng cua MBBank."""
     data = json.loads(html)
     job_url_template = site.get("job_url_template")
 
@@ -382,27 +332,34 @@ def parse_mbbank_api(html: str, site: dict) -> list:
     return jobs
 
 
+TALENTNETWORK_JOB_PATTERN = re.compile(r"/viec-lam/[^/?]+\.([0-9a-fA-F]{6,})\.html")
+
+
 def parse_talentnetwork(html: str, site: dict) -> list:
     """
-    Nen tang Talentnetwork/CareerViet - vd: SHB (tuyendung.shb.com.vn).
+    Nen tang Talentnetwork/CareerViet - vd: SHB, PVcomBank, BacA Bank.
 
     Nhan dien: moi tin la 1 the <a href=".../viec-lam/<slug>.<ma-hex>.html">.
     Ma hex truoc ".html" la ID duy nhat, khong doi -> dung lam khoa chong trung.
 
-    Dia diem hien thi dang chu "Noi lam viec: ..." ngay ke ben tieu de tin
-    tren trang danh sach -> quet tuan tu theo thu tu xuat hien trong HTML de
-    ghep dia diem vao dung tin (khong can mo them trang nao).
+    QUAN TRONG (da sua loi so voi ban truoc): dia diem tren cac trang nay
+    KHONG luon co nhan "Noi lam viec:" di kem - nhieu trang (vd PVcomBank)
+    chi hien thi TRUC TIEP ten tinh/thanh (vi du "Hà Nội") ngay sau tieu de,
+    khong co nhan gi ca. Ham nay xu ly ca 2 truong hop: neu co nhan
+    "Noi lam viec:" thi doc theo nhan, neu khong thi lay dong van ban DAU
+    TIEN xuat hien ngay sau tieu de lam dia diem.
     """
     soup = BeautifulSoup(html, "html.parser")
-    job_pattern = re.compile(r"/viec-lam/[^/?]+\.([0-9a-fA-F]{6,})\.html")
 
     jobs = []
     current = None
+    current_anchor = None
+    awaiting_location = False
 
     for el in soup.descendants:
         if getattr(el, "name", None) == "a" and el.has_attr("href"):
             href = urljoin(site["url"], el["href"].strip())
-            m = job_pattern.search(href)
+            m = TALENTNETWORK_JOB_PATTERN.search(href)
             if m:
                 job_id = m.group(1)
                 title = el.get_text(strip=True)
@@ -416,11 +373,27 @@ def parse_talentnetwork(html: str, site: dict) -> list:
                         "location_text": "",
                         "needs_detail_fetch_for_location": False,
                     }
+                    current_anchor = el
+                    awaiting_location = True
                 continue
         elif isinstance(el, str) and current is not None and not current["location_text"]:
-            text = el.strip()
-            if text.startswith("Nơi làm việc:"):
-                current["location_text"] = text[len("Nơi làm việc:"):].strip()
+            # Bo qua text nam BEN TRONG chinh the <a> tieu de (khong phai dia diem)
+            if current_anchor is not None and el.find_parent("a") is current_anchor:
+                continue
+            # Mot NavigableString co the gom nhieu dong (vd HTML khong co tag
+            # ngan cach ro rang) -> xet tung dong rieng le cho an toan.
+            for raw_line in el.split("\n"):
+                line = raw_line.strip()
+                if not line:
+                    continue
+                if line.startswith("Nơi làm việc:"):
+                    current["location_text"] = line[len("Nơi làm việc:"):].strip()
+                    awaiting_location = False
+                    break
+                elif awaiting_location:
+                    current["location_text"] = line
+                    awaiting_location = False
+                    break
 
     if current is not None:
         jobs.append(current)
@@ -431,14 +404,16 @@ def parse_talentnetwork(html: str, site: dict) -> list:
 def parse_iviec_api(html: str, site: dict) -> list:
     """
     Nen tang iviec.vn (centralize-api-v2.iviec.vn) - vd: TPBank,
-    SunPhuQuoc Airways, LPBank.
-
-    Day la API JSON noi bo (tim qua F12 Network), tra ve du lieu day du:
-    tieu de, ma "slug" de dung link, va danh sach dia diem lam viec
-    (workingNewAddresses) -> khong can mo them trang nao khac.
+    SunPhuQuoc Airways, LPBank, VietABank.
 
     "url" trong config.json la duong dan API. "job_url_prefix" la duong dan
     trang web cong khai de ghep voi slug thanh link cho tung tin.
+
+    Ngoai dia diem (workingNewAddresses), ham nay con doc them TEN PHONG BAN
+    tu "recruitmentDeltaDatas" (key "job_department") va ghep chung vao
+    location_text -> cho phep loc dong thoi ca dia diem LAN phong ban
+    (dung "location_filter_mode": "all" trong config de bat buoc ca 2 dieu
+    kien cung xuat hien, vi du VietABank can loc "Hà Nội" VA "Hội sở").
     """
     data = json.loads(html)
     prefix = site.get("job_url_prefix", "")
@@ -455,7 +430,26 @@ def parse_iviec_api(html: str, site: dict) -> list:
 
         addresses = item.get("workingNewAddresses") or []
         locations = [a.get("provinceName") for a in addresses if a.get("provinceName")]
+
+        departments = []
+        for delta in item.get("recruitmentDeltaDatas") or []:
+            if delta.get("workspaceDeltaDataKey") != "job_department":
+                continue
+            raw_val = delta.get("workspaceDeltaDataValue")
+            if not raw_val:
+                continue
+            try:
+                parsed_val = json.loads(raw_val)
+                dep_name = parsed_val.get("name_VN")
+                if dep_name:
+                    departments.append(dep_name)
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                pass
+
         location_text = ", ".join(locations)
+        if departments:
+            dep_text = "Phòng ban: " + ", ".join(departments)
+            location_text = f"{location_text} | {dep_text}" if location_text else dep_text
 
         jobs.append({
             "id": job_id,
@@ -469,17 +463,7 @@ def parse_iviec_api(html: str, site: dict) -> list:
 
 
 def parse_bidv(html: str, site: dict) -> list:
-    """
-    API JSON rieng cua BIDV (tuyendung.bidv.com.vn/GetAllTinTuyenDung).
-
-    Du lieu tra ve dang: {"rows": [{id, title, descriptionjob (HTML), ...}]}.
-    KHONG co truong dia diem rieng -> doc toan bo noi dung mo ta (HTML) roi
-    bo tag, dung lam "location_text" de bo loc dia diem tim theo chuoi con
-    (vi du tim thay "Hà Nội" trong dia chi ghi trong mo ta).
-
-    QUAN TRONG - GIOI HAN: khong co link rieng cho tung tin trong du lieu
-    API -> dung link trang danh sach chung cho moi thong bao (giong VietinBank).
-    """
+    """API JSON rieng cua BIDV. Khong co link rieng tung tin."""
     data = json.loads(html)
     jobs = []
     for row in data.get("rows", []):
@@ -490,7 +474,6 @@ def parse_bidv(html: str, site: dict) -> list:
 
         desc_html = row.get("descriptionjob", "") or ""
         location_text = BeautifulSoup(desc_html, "html.parser").get_text(" ", strip=True)
-        # Cat bot cho gon (mo ta co the rat dai), chi giu doan dau du de loc dia diem
         location_text = location_text[:400]
 
         jobs.append({
@@ -504,28 +487,21 @@ def parse_bidv(html: str, site: dict) -> list:
     return jobs
 
 
+VIETNAMWORKS_JOB_PATTERN = re.compile(r"vietnamworks\.com/[^/?]+-(\d+)-jv")
+
+
 def parse_vietnamworks_company(html: str, site: dict) -> list:
     """
     Trang tin tuyen dung theo TUNG CONG TY tren VietnamWorks
     (vd: vietnamworks.com/nha-tuyen-dung/<ten-cong-ty>-c<id>).
-
-    Khac voi trang tim kiem chung cua VietnamWorks (la JavaScript thuan),
-    trang theo cong ty nay la HTML tinh, co the doc truc tiep.
-
-    Nhan dien: moi tin la 1 the <a href="https://vietnamworks.com/<slug>-<id>-jv">.
-    Dia diem duoc doc tu doan van ban ngay sau tieu de tin (trong pham vi
-    gioi han ky tu) vi trang khong co nhan "Dia diem:" co dinh ro rang.
-
-    Do la trang tong hop dung chung cho NHIEU cong ty, "id" tin duoc tao
-    tu chinh ID that cua VietnamWorks (on dinh, khong doi).
+    Dung chung cho nhieu cong ty: vd VietinBank, NCB.
     """
     soup = BeautifulSoup(html, "html.parser")
-    job_pattern = re.compile(r"vietnamworks\.com/[^/?]+-(\d+)-jv")
 
     jobs = {}
     for a_tag in soup.find_all("a", href=True):
         href = urljoin(site["url"], a_tag["href"].strip())
-        m = job_pattern.search(href.split("?")[0])
+        m = VIETNAMWORKS_JOB_PATTERN.search(href.split("?")[0])
         if not m:
             continue
 
@@ -535,8 +511,6 @@ def parse_vietnamworks_company(html: str, site: dict) -> list:
             continue
 
         if job_id not in jobs or len(title) > len(jobs[job_id]["title"]):
-            # Doc doan van ban ngay sau the <a> nay (trong pham vi 1 container cha)
-            # de tim dia diem, vi trang khong co nhan co dinh ro rang.
             container = a_tag.find_parent(["div", "li", "article"]) or a_tag.parent
             location_text = container.get_text(" ", strip=True) if container else ""
 
@@ -545,6 +519,44 @@ def parse_vietnamworks_company(html: str, site: dict) -> list:
                 "title": title,
                 "url": href.split("?")[0],
                 "location_text": location_text[:400],
+                "needs_detail_fetch_for_location": False,
+            }
+
+    return list(jobs.values())
+
+
+def parse_seabank(html: str, site: dict) -> list:
+    """
+    Nen tang rieng cua SeABank (tuyendung.seabank.com.vn).
+
+    Nhan dien: moi tin la 1 the <a href=".../jobs/<slug>.<id>"> (KHONG co
+    duoi ".html" nhu Talentnetwork). "url" trong config.json nen la duong
+    dan da loc san dia diem qua tham so URL (vi du jobLocations=4 = Ha Noi),
+    nen KHONG can doc them dia diem tu HTML - chi can dam bao khong loc gi
+    them (location_filter de trong []) vi server da loc dung tu truoc.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    job_pattern = re.compile(r"/jobs/[^/?]+\.(\d+)$")
+
+    jobs = {}
+    for a_tag in soup.find_all("a", href=True):
+        href = urljoin(site["url"], a_tag["href"].strip())
+        href_no_query = href.split("?")[0]
+        m = job_pattern.search(href_no_query)
+        if not m:
+            continue
+
+        job_id = m.group(1)
+        title = a_tag.get_text(strip=True)
+        if not title:
+            continue
+
+        if job_id not in jobs or len(title) > len(jobs[job_id]["title"]):
+            jobs[job_id] = {
+                "id": job_id,
+                "title": title,
+                "url": href_no_query,
+                "location_text": "",  # URL da loc san dia diem phia server
                 "needs_detail_fetch_for_location": False,
             }
 
@@ -561,19 +573,28 @@ PARSERS = {
     "iviec_api": parse_iviec_api,
     "bidv_api": parse_bidv,
     "vietnamworks_company": parse_vietnamworks_company,
+    "seabank_api": parse_seabank,
 }
 
-# Voi mot so loai website, trang danh sach khong co san dia diem, phai mo
-# them trang chi tiet cua TUNG TIN MOI de doc. Ham tuong ung duoc khai bao o day.
 DETAIL_LOCATION_FETCHERS = {
     "base_ehiring": get_location_base_ehiring,
 }
 
 
-def location_matches_filter(location_text: str, location_filter: list) -> bool:
-    """So khop dang chuoi con, khong phan biet hoa/thuong."""
+def location_matches_filter(location_text: str, location_filter: list, mode: str = "any") -> bool:
+    """
+    So khop dang chuoi con, khong phan biet hoa/thuong.
+    mode="any" (mac dinh): CHI CAN 1 trong cac tu khoa xuat hien.
+    mode="all": BAT BUOC TAT CA tu khoa phai cung xuat hien (vd loc dong
+    thoi ca dia diem lan phong ban).
+    """
     normalized = location_text.lower()
-    return any(target.strip().lower() in normalized for target in location_filter if target.strip())
+    terms = [t.strip().lower() for t in location_filter if t.strip()]
+    if not terms:
+        return True
+    if mode == "all":
+        return all(t in normalized for t in terms)
+    return any(t in normalized for t in terms)
 
 
 # ---------------------------------------------------------------------------
@@ -581,10 +602,6 @@ def location_matches_filter(location_text: str, location_filter: list) -> bool:
 # ---------------------------------------------------------------------------
 
 def process_site(site: dict, history: dict) -> bool:
-    """
-    Xu ly 1 site: tai HTML, parse job, so sanh history, gui Telegram neu co job moi.
-    Tra ve True neu history co thay doi can luu lai.
-    """
     name = site.get("name", "Unknown site")
 
     if not site.get("enabled", True):
@@ -613,7 +630,7 @@ def process_site(site: dict, history: dict) -> bool:
 
     try:
         jobs = parser(html, site)
-    except Exception as exc:  # noqa: BLE001 - can log het moi loai loi parser
+    except Exception as exc:  # noqa: BLE001
         logger.error("[%s] Loi khi phan tich HTML: %s", name, exc)
         send_telegram_message(
             f"⚠️ <b>{name}</b>\nCo loi khi phan tich noi dung website (co the web da "
@@ -659,9 +676,10 @@ def process_site(site: dict, history: dict) -> bool:
     logger.info("[%s] Phat hien %d tin tuyen dung MOI.", name, len(new_jobs))
 
     location_filter = [loc for loc in site.get("location_filter", []) if loc.strip()]
+    filter_mode = site.get("location_filter_mode", "any")
     detail_fetcher = DETAIL_LOCATION_FETCHERS.get(site_type)
 
-    processed_ids = []  # tat ca ID da xu ly xong (du co gui hay khong) -> ghi vao history
+    processed_ids = []
     for job in new_jobs:
         location_unknown = False
 
@@ -682,7 +700,7 @@ def process_site(site: dict, history: dict) -> bool:
             location_unknown = True
 
         if location_filter and not location_unknown:
-            if not location_matches_filter(job["location_text"], location_filter):
+            if not location_matches_filter(job["location_text"], location_filter, filter_mode):
                 logger.info(
                     "[%s] Bo qua (khong dung khu vuc loc): %s | Dia diem: %s",
                     name, job["title"], job["location_text"],
@@ -712,7 +730,7 @@ def process_site(site: dict, history: dict) -> bool:
                 "[%s] Gui that bai, se thu lai o lan chay sau: %s",
                 name, job["title"],
             )
-        time.sleep(0.5)  # tranh gui qua nhanh bi Telegram gioi han toc do
+        time.sleep(0.5)
 
     updated_ids = list(known_ids | set(processed_ids))
     history[name] = updated_ids[-MAX_HISTORY_IDS_PER_SITE:]

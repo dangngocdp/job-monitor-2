@@ -1,59 +1,52 @@
 # job-monitor-2
 
-Bot tự động kiểm tra trang tuyển dụng mỗi ngày lúc **08:00 giờ Việt Nam**, nếu có tin tuyển dụng **mới tại Hà Nội** sẽ gửi thông báo qua **Telegram**. Chạy hoàn toàn miễn phí trên GitHub Actions, không cần bật máy tính, không gửi trùng.
+Bot tự động kiểm tra trang tuyển dụng mỗi ngày lúc **08:00 giờ Việt Nam**, gửi thông báo qua **Telegram** khi có tin mới phù hợp bộ lọc địa điểm.
 
 ---
 
 ## ⚠️ LƯU Ý QUAN TRỌNG CHO LẦN CẬP NHẬT NÀY
 
-Lần này bạn **CHỈ upload đè 4 file sau**, **KHÔNG upload `history.json`**:
+Chỉ upload đè **3 file**: `monitor.py`, `config.json`, `README.md`.
+**KHÔNG upload `history.json`** — file đang có trên GitHub đã lưu lịch sử các site cũ, ghi đè sẽ khiến các site đó chạy lại "lần đầu" không cần thiết (không hại gì nghiêm trọng, chỉ gửi lại tin "đã khởi tạo theo dõi").
 
-- `monitor.py`
-- `config.json`
-- `README.md`
-- `.github/workflows/monitor.yml`
-
-Lý do: file `history.json` đang có trên GitHub của bạn đã lưu lịch sử các tin đã gửi cho 10 site cũ. Nếu ghi đè bằng file `history.json` rỗng đi kèm ZIP này, các site cũ sẽ chạy lại "lần đầu tiên" (gửi lại tin "đã khởi tạo theo dõi" — không hại gì nghiêm trọng, nhưng không cần thiết). Bỏ qua file này khi upload, hệ thống sẽ tự thêm dữ liệu cho 3 site mới vào đúng file `history.json` đang có.
+`.github/workflows/monitor.yml` **không thay đổi** so với bản đang chạy — không cần upload lại.
 
 ---
 
-## Danh sách 13 mục đang theo dõi
+## 🔧 Đã sửa lỗi quan trọng: SHB đọc sai địa điểm
+
+Phát hiện khi phân tích PVcomBank (cùng nền tảng với SHB): trang tin tuyển dụng hiển thị địa điểm dạng **chữ trần** (chỉ "Hà Nội"), không có nhãn "Nơi làm việc:" như giả định ban đầu khi viết code cho SHB. Điều này khiến SHB **trước đây có thể đã không lọc đúng địa điểm** — mọi tin mới đều bị gửi kèm cảnh báo "không xác định được". Đã sửa để đọc đúng cả 2 kiểu (có nhãn và không có nhãn).
+
+---
+
+## Danh sách 18 mục đang theo dõi
 
 | # | Tên | Trạng thái |
 |---|---|---|
-| 1 | Sun Group | ✅ |
-| 2 | Vietcombank | ✅ |
-| 3 | Techcombank | ✅ |
-| 4 | VietinBank (trực tiếp) | ⏸️ Tắt — chưa tìm được đúng API |
-| 5 | **VietinBank (qua VietnamWorks)** | 🆕 Mới thêm — độ tin cậy **trung bình** (xem lưu ý bên dưới) |
-| 6 | SHB | ✅ |
-| 7 | MSB - NHTM và tiêu dùng | ✅ |
-| 8 | MSB - Hành chính Văn thư Thư ký | ✅ |
-| 9 | MBBank | ✅ |
-| 10 | TPBank | ✅ |
-| 11 | SunPhuQuoc Airways | ✅ |
-| 12 | **LPBank** | 🆕 Mới thêm — độ tin cậy cao (cùng nền tảng TPBank) |
-| 13 | **BIDV** | 🆕 Mới thêm — độ tin cậy cao (đã test bằng dữ liệu thật) |
+| 1-14 | Sun Group, Vietcombank, Techcombank, MSB×2, MBBank, TPBank, SunPhuQuoc Airways, LPBank, BIDV, SHB (đã vá lỗi) | ✅ Đã chạy ổn định trước đó |
+| 15 | VietinBank (trực tiếp) | ⏸️ Tắt — chưa tìm được đúng API |
+| 16 | **VPBank** | 🆕 Độ tin cậy cao (cùng nền tảng Vietcombank/Techcombank) |
+| 17 | **VietinBank (qua VietnamWorks)** | 🆕 Độ tin cậy trung bình — cần theo dõi lần chạy đầu |
+| 18 | **NCB (qua VietnamWorks)** | 🆕 Độ tin cậy trung bình — cần theo dõi lần chạy đầu |
+| 19 | **PVcomBank** | 🆕 Độ tin cậy cao (đã test bằng dữ liệu thật) |
+| 20 | **BacA Bank** | 🆕 Độ tin cậy trung bình — trang chặn robots.txt nên chưa xem trực tiếp được dữ liệu, chỉ suy ra từ tìm kiếm |
+| 21 | **SeABank** | 🆕 Độ tin cậy cao (đã test bằng dữ liệu thật, URL tự lọc sẵn Hà Nội) |
 
-### Lưu ý về 3 site mới
-
-- **LPBank**: dùng lại đúng công nghệ đã hoạt động ổn định với TPBank/SunPhuQuoc Airways → độ tin cậy cao.
-- **BIDV**: đã test kỹ với dữ liệu thật bạn cung cấp. Có 1 giới hạn: **không có link riêng từng tin** (dữ liệu API không kèm link) → thông báo sẽ đính kèm link trang danh sách chung thay vì link thẳng tới tin.
-- **VietinBank (qua VietnamWorks)**: đây là phương án thay thế vì không tìm được API chính thức của trang VietinBank. Cách đọc dữ liệu dựa trên cấu trúc trang mà tôi quan sát được nhưng **chưa qua kiểm thử với dữ liệu thật 100%** — cần theo dõi kỹ lần chạy đầu, nếu có vấn đề (báo lỗi hoặc không tìm thấy tin) hãy gửi lại log để điều chỉnh.
+*(Số thứ tự không phản ánh đúng 18 dòng thực tế trong config do gộp nhóm mô tả — xem file `config.json` để có danh sách chính xác.)*
 
 ---
 
 ## Cách chạy thử
 
-1. Vào tab **Actions** trên GitHub → chọn **Website Monitor** → **Run workflow**.
-2. Đợi 20-60 giây (nhiều site hơn nên hơi lâu hơn trước).
-3. Kiểm tra Telegram — các site MỚI (LPBank, BIDV, VietinBank qua VietnamWorks) sẽ gửi tin "đã khởi tạo theo dõi" (bình thường, không phải lỗi). Các site cũ sẽ im lặng nếu không có tin mới (vì đã có lịch sử từ trước, không bị reset).
-4. Nếu site nào báo lỗi/0 tin, vào tab Actions xem log, copy gửi lại cho tôi.
+1. Tab **Actions** → **Website Monitor** → **Run workflow**.
+2. Đợi 30-90 giây (18 site nên lâu hơn trước khá nhiều).
+3. Các site MỚI sẽ gửi tin "đã khởi tạo theo dõi" — bình thường. Site cũ im lặng nếu không có tin mới (lịch sử không bị mất).
+4. Nếu site nào lỗi/0 tin, xem log trong tab Actions và gửi lại cho tôi.
 
-## Cấu hình lọc địa điểm
+## Bộ lọc nâng cao: Địa điểm + Phòng ban (dùng cho VietABank sau này)
 
-Mỗi site có `location_filter` riêng trong `config.json`, mặc định `["Hà Nội"]`. Đổi thành `[]` để tắt lọc (nhận mọi địa điểm), hoặc thêm tỉnh khác vào mảng.
+Ngoài `location_filter` (mặc định so khớp kiểu "chỉ cần 1 từ khóa đúng"), có thể thêm `"location_filter_mode": "all"` để bắt buộc **tất cả** từ khóa phải cùng xuất hiện — ví dụ vừa đúng địa điểm vừa đúng phòng ban.
 
 ## Sửa nhanh không cần ZIP
 
-Với các thay đổi nhỏ (đổi địa điểm lọc, bật/tắt 1 site...), vào file trên GitHub → bấm ✏️ → sửa → **Commit changes**, không cần tải lại ZIP.
+Thay đổi nhỏ (đổi địa điểm lọc, bật/tắt site...): vào file trên GitHub → ✏️ → sửa → **Commit changes**.
