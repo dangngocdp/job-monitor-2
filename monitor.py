@@ -623,9 +623,10 @@ def process_site(site: dict, history: dict) -> bool:
         )
         return False
 
-    logger.info("[%s] Dang tai trang: %s", name, site.get("url"))
+        logger.info("[%s] Dang tai trang: %s", name, site.get("url"))
+    verify_ssl = site.get("verify_ssl", True)
     try:
-        html = fetch_html(site["url"])
+        html = fetch_html(site["url"], verify_ssl=verify_ssl)
     except requests.RequestException as exc:
         logger.error("[%s] Khong tai duoc trang web: %s", name, exc)
         send_telegram_message(
