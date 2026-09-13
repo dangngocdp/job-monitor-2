@@ -109,7 +109,16 @@ def send_telegram_message(text: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def fetch_html(url: str, verify_ssl: bool = True) -> str:
+    """
+    verify_ssl=False: dung khi may chu co chung chi SSL cau hinh thieu sot
+    (loi "certificate verify failed" do LOI TU PHIA HO, khong phai loi may
+    cua ban). Chi nen bat False cho website da xac nhan gap loi nay, vi tat
+    xac minh SSL dong nghia bot khong the chac chan dang noi chuyen dung voi
+    may chu that (rui ro rat thap voi trang chi doc du lieu cong khai nhu
+    o day, nhung van la mot su danh doi bao mat can luu y).
+    """
     if not verify_ssl:
+        # Tat canh bao "InsecureRequestWarning" de khong lam nhieu log
         requests.packages.urllib3.disable_warnings(
             requests.packages.urllib3.exceptions.InsecureRequestWarning
         )
@@ -569,6 +578,122 @@ def parse_seabank(html: str, site: dict) -> list:
     return list(jobs.values())
 
 
+TOPCV_JOB_PATTERN = re.compile(r"/viec-lam/[^/?]+/(\d+)\.html")
+
+# Cac dong van ban CHAC CHAN khong phai dia diem (luong, nut bam, thoi gian
+# cap nhat...) -> bo qua, tiep tuc cho den khi gap dong hop le.
+NON_LOCATION_LINE_PATTERN = re.compile(
+    r"(thoả thuận|thỏa thuận|triệu|usd|\$|ứng tuyển|cập nhật|lương|"
+    r"^\d+[\d.,]*\s*-\s*\d)",
+    re.IGNORECASE,
+)
+
+
+def parse_topcv_company(html: str, site: dict) -> list:
+    """
+    Trang tin tuyen dung theo TUNG CONG TY tren TopCV
+    (vd: topcv.vn/cong-ty/<ten-cong-ty>-cid<id>/tuyen-dung.html).
+
+    Nhan dien: moi tin la 1 the <a href="https://topcv.vn/viec-lam/<slug>/<id>.html">.
+    ID so cuoi URL la duy nhat, khong doi -> dung lam khoa chong trung.
+
+    Dia diem hien thi dang chu TRAN (vi du "Hà Nội") ngay sau tieu de tin,
+    khong co nhan co dinh -> quet tuan tu giong nhu Talentnetwork: lay dong
+    van ban DAU TIEN xuat hien ngay sau tieu de lam dia diem.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+
+    jobs = []
+    current = None
+    current_anchor = None
+    awaiting_location = False
+
+    for el in soup.descendants:
+        if getattr(el, "name", None) == "a" and el.has_attr("href"):
+            href = urljoin(site["url"], el["href"].strip())
+            m = TOPCV_JOB_PATTERN.search(href.split("?")[0])
+            if m:
+                job_id = m.group(1)
+                title = el.get_text(strip=True)
+                if title and (current is None or current["id"] != job_id):
+                    if current is not None:
+                        jobs.append(current)
+                    current = {
+                        "id": job_id,
+                        "title": title,
+                        "url": href.split("?")[0],
+                        "location_text": "",
+                        "needs_detail_fetch_for_location": False,
+                    }
+                    current_anchor = el
+                    awaiting_location = True
+                continue
+        elif isinstance(el, str) and current is not None and not current["location_text"]:
+            # Bo qua text nam trong BAT KY the <a> nao (vi du link ten cong ty)
+            # - dia diem that luon la text tran, khong nam trong link.
+            if el.find_parent("a") is not None:
+                continue
+            for raw_line in el.split("\n"):
+                line = raw_line.strip()
+                if not line:
+                    continue
+                if awaiting_location:
+                    if NON_LOCATION_LINE_PATTERN.search(line):
+                        continue  # bo qua dong luong/nut bam, tiep tuc cho
+                    current["location_text"] = line
+                    awaiting_location = False
+                    break
+
+    if current is not None:
+        jobs.append(current)
+
+    return jobs
+
+
+def parse_wordpress_posts(html: str, site: dict) -> list:
+    """
+    Trang tuyen dung dang WordPress custom post type - vd: TCEX.
+
+    Nhan dien: moi tin la 1 the <a href="<domain>/<slug-thu-muc>/<slug-tin>/">
+    voi "job_url_prefix" khai bao truoc trong config.json. Vi WordPress
+    permalink KHONG doi qua thoi gian, dung chinh slug lam ID chong trung
+    (khong can ID so).
+
+    KHONG doc dia diem (nhieu site dang WordPress khong co truong dia diem
+    ro rang trong danh sach) -> de "location_filter": [] trong config.json
+    cho loai site nay de nhan tat ca tin, tru khi duoc cau hinh rieng.
+    """
+    prefix = site["job_url_prefix"]
+    soup = BeautifulSoup(html, "html.parser")
+
+    jobs = {}
+    for a_tag in soup.find_all("a", href=True):
+        href = urljoin(site["url"], a_tag["href"].strip())
+        href_no_query = href.split("?")[0].rstrip("/")
+
+        if not href_no_query.startswith(prefix.rstrip("/")):
+            continue
+
+        slug = href_no_query[len(prefix.rstrip("/")):].strip("/")
+        if not slug:
+            continue
+
+        title = a_tag.get_text(strip=True)
+        if not title:
+            continue
+
+        if slug not in jobs or len(title) > len(jobs[slug]["title"]):
+            jobs[slug] = {
+                "id": slug,
+                "title": title,
+                "url": href_no_query + "/",
+                "location_text": "",
+                "needs_detail_fetch_for_location": False,
+            }
+
+    return list(jobs.values())
+
+
 PARSERS = {
     "base_ehiring": parse_base_ehiring,
     "successfactors": parse_successfactors,
@@ -580,6 +705,8 @@ PARSERS = {
     "bidv_api": parse_bidv,
     "vietnamworks_company": parse_vietnamworks_company,
     "seabank_api": parse_seabank,
+    "topcv_company": parse_topcv_company,
+    "wordpress_posts": parse_wordpress_posts,
 }
 
 DETAIL_LOCATION_FETCHERS = {
@@ -623,7 +750,7 @@ def process_site(site: dict, history: dict) -> bool:
         )
         return False
 
-        logger.info("[%s] Dang tai trang: %s", name, site.get("url"))
+    logger.info("[%s] Dang tai trang: %s", name, site.get("url"))
     verify_ssl = site.get("verify_ssl", True)
     try:
         html = fetch_html(site["url"], verify_ssl=verify_ssl)
