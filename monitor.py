@@ -108,8 +108,14 @@ def send_telegram_message(text: str) -> bool:
 # Tien ich chung
 # ---------------------------------------------------------------------------
 
-def fetch_html(url: str) -> str:
-    resp = requests.get(url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT)
+def fetch_html(url: str, verify_ssl: bool = True) -> str:
+    if not verify_ssl:
+        requests.packages.urllib3.disable_warnings(
+            requests.packages.urllib3.exceptions.InsecureRequestWarning
+        )
+    resp = requests.get(
+        url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT, verify=verify_ssl
+    )
     resp.raise_for_status()
     return resp.text
 
