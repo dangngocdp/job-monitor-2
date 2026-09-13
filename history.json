@@ -1383,5 +1383,32 @@
     "2319",
     "2304",
     "2301"
+  ],
+  "BacA Bank": [
+    "35ac082a",
+    "35abff1e",
+    "35aba19c",
+    "35aba19d",
+    "35aba1a0",
+    "35abbdb9",
+    "35abc578",
+    "35abfb7d",
+    "35aba1a1",
+    "35abf77c",
+    "35abfcd4",
+    "35abfa9f",
+    "35abfa9e",
+    "35abfa9a",
+    "35abfa98",
+    "35abfa95",
+    "35abfa94",
+    "35abfa89",
+    "35abfa87"
+  ],
+  "TCEX": [
+    "giam-doc-chuyen-gia-cao-cap-phan-phoi-tang-truong",
+    "giam-doc-chuyen-gia-cao-cap-kinh-doanh-thi-truong",
+    "tro-ly-nghiep-vu-tong-giam-doc",
+    "giam-doc-chuyen-gia-cao-cap-tu-van-phat-hanh"
   ]
 }
