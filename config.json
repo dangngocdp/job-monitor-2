@@ -80,17 +80,10 @@
       "location_filter": []
     },
     {
-      "name": "MSB - NHTM va tieu dung",
+      "name": "MSB - Tat ca vi tri",
       "enabled": true,
       "type": "msb",
-      "url": "https://jobs.msb.com.vn/jobs/search/1595595",
-      "location_filter": ["Hà Nội"]
-    },
-    {
-      "name": "MSB - Hanh chinh Van thu Thu ky",
-      "enabled": true,
-      "type": "msb",
-      "url": "https://jobs.msb.com.vn/landingpages/hnh-chnh-vn-th-th-k-a-opportunities-at-msb-5",
+      "url": "https://jobs.msb.com.vn/latest-jobs",
       "location_filter": ["Hà Nội"]
     },
     {
@@ -137,12 +130,20 @@
       "listing_url": "https://tuyendung.bidv.com.vn/danh-sach-viec-lam-moi.html",
       "location_filter": ["Hà Nội"]
     },
-    {
-      "name": "Viet Nam Thinh Vuong (TopCV)",
+        {
+      "name": "CAEX (VietnamWorks)",
       "enabled": true,
-      "type": "topcv_company",
-      "url": "https://www.topcv.vn/cong-ty/cong-ty-co-phan-san-giao-dich-tai-san-ma-hoa-viet-nam-thinh-vuong-cid245620/tuyen-dung.html",
-      "location_filter": ["Hà Nội"]
+      "type": "vietnamworks_company",
+      "url": "https://www.vietnamworks.com/nha-tuyen-dung/cong-ty-co-phan-san-giao-dich-tai-san-ma-hoa-viet-nam-thinh-vuong-c413970",
+      "location_filter": []
+    },
+    {
+      "name": "TCBS",
+      "enabled": true,
+      "type": "wordpress_posts",
+      "url": "https://www.tcbs.com.vn/ve-chung-toi/tuyen-dung/",
+      "job_url_prefix": "https://www.tcbs.com.vn/ve-chung-toi-cate/tuyen-dung/",
+      "location_filter": []
     },
     {
       "name": "TCEX",
