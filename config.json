@@ -152,6 +152,13 @@
       "url": "https://www.tcex.com.vn/tuyen-dung/",
       "job_url_prefix": "https://www.tcex.com.vn/tuyen-dung/",
       "location_filter": []
+    },
+    {
+      "name": "BaoVietBank",
+      "enabled": true,
+      "type": "baovietbank",
+      "url": "https://www.baovietbank.vn/tuyen-dung/",
+      "location_filter": ["Hà Nội"]
     }
   ]
 }
