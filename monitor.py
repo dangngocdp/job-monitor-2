@@ -693,7 +693,48 @@ def parse_wordpress_posts(html: str, site: dict) -> list:
 
     return list(jobs.values())
 
+BAOVIETBANK_JOB_PATTERN = re.compile(r"[?&]jobID=(\d+)")
 
+
+def parse_baovietbank(html: str, site: dict) -> list:
+    """
+    Trang tuyen dung rieng cua BaoVietBank (baovietbank.vn/tuyen-dung).
+
+    Nhan dien: moi tin co 3 the <a> trung link (cot "Ma so", tieu de, nut
+    "Ung tuyen"), deu tro toi cung 1 URL chua "?jobID=<so>". So jobID la ID
+    duy nhat, khong doi -> dung lam khoa chong trung. Giu lai ban ghi co
+    tieu de DAI NHAT (tranh lay nham text ngan nhu "Ứng tuyển" hay nam "2026").
+
+    Dia diem nam trong cung 1 dong (<tr>) voi link -> lay het text trong
+    dong do de dung cho bo loc dia diem (khong can mo them trang nao).
+    """
+    soup = BeautifulSoup(html, "html.parser")
+
+    jobs = {}
+    for a_tag in soup.find_all("a", href=True):
+        href = urljoin(site["url"], a_tag["href"].strip())
+        m = BAOVIETBANK_JOB_PATTERN.search(href)
+        if not m:
+            continue
+
+        job_id = m.group(1)
+        title = a_tag.get_text(strip=True)
+        if not title:
+            continue
+
+        row = a_tag.find_parent("tr")
+        location_text = row.get_text(" | ", strip=True) if row else ""
+
+        if job_id not in jobs or len(title) > len(jobs[job_id]["title"]):
+            jobs[job_id] = {
+                "id": job_id,
+                "title": title,
+                "url": href,
+                "location_text": location_text,
+                "needs_detail_fetch_for_location": False,
+            }
+
+    return list(jobs.values())
 PARSERS = {
     "base_ehiring": parse_base_ehiring,
     "successfactors": parse_successfactors,
@@ -707,6 +748,7 @@ PARSERS = {
     "seabank_api": parse_seabank,
     "topcv_company": parse_topcv_company,
     "wordpress_posts": parse_wordpress_posts,
+    "baovietbank": parse_baovietbank,
 }
 
 DETAIL_LOCATION_FETCHERS = {
