@@ -6,71 +6,94 @@
       "type": "base_ehiring",
       "url": "https://tuyendung.sungroup.com.vn/",
       "job_url_prefix": "https://tuyendung.sungroup.com.vn/job/",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "Vietcombank",
       "enabled": true,
       "type": "successfactors",
       "url": "https://tuyendung.vietcombank.com.vn/go/Tr%E1%BB%A5-s%E1%BB%9F-ch%C3%ADnh/570444/",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "Techcombank",
       "enabled": true,
       "type": "successfactors",
       "url": "https://www.techcombankjobs.com/search/?q=&location=Ha+Noi&sortColumn=referencedate&sortDirection=desc",
-      "location_filter": ["Ha Noi"]
+      "location_filter": [
+        "Ha Noi"
+      ]
     },
     {
       "name": "VPBank",
       "enabled": true,
       "type": "successfactors",
       "url": "https://tuyendung.vpbank.com.vn/search/?locale=vi_VN&markerViewed=&carouselIndex=&facetFilters=%7B%22sfstd_jobLocation_obj%22%3A%5B%22H%C3%A0+N%E1%BB%99i%22%5D%7D&pageNumber=0",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "VietinBank",
       "enabled": false,
       "type": "vietinbank",
       "url": "https://tuyendung.vietinbank.vn/tuyendung/tuyen-dung/?keyWord=&nganhNghe=&noiLamViec=TP.%20H%C3%A0%20N%E1%BB%99i",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "VietinBank (qua VietnamWorks)",
       "enabled": true,
       "type": "vietnamworks_company",
       "url": "https://www.vietnamworks.com/nha-tuyen-dung/ngan-hang-tmcp-cong-thuong-viet-nam-vietinbank-c34511?fromPage=jobDetail",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "NCB (qua VietnamWorks)",
       "enabled": true,
       "type": "vietnamworks_company",
       "url": "https://www.vietnamworks.com/nha-tuyen-dung/ngan-hang-tmcp-quoc-dan-ncb-c171670?fromPage=jobDetail",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "SHB",
       "enabled": true,
       "type": "talentnetwork",
       "url": "https://tuyendung.shb.com.vn/tim-viec-lam/tai-ha-noi.4/vi",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ],
+      "max_pages": 6
     },
     {
       "name": "PVcomBank",
       "enabled": true,
       "type": "talentnetwork",
       "url": "https://tuyendung.pvcombank.com.vn/tim-viec-lam/tai-ha-noi.4/vi",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ],
+      "max_pages": 6
     },
     {
       "name": "BacA Bank",
       "enabled": true,
       "type": "talentnetwork",
       "url": "https://tuyendung.baca-bank.vn/tim-viec-lam/tai-ha-noi.4/vi",
-      "location_filter": ["Hà Nội"],
-      "verify_ssl": false
+      "location_filter": [
+        "Hà Nội"
+      ],
+      "verify_ssl": false,
+      "max_pages": 6
     },
     {
       "name": "SeABank",
@@ -84,7 +107,9 @@
       "enabled": true,
       "type": "msb",
       "url": "https://jobs.msb.com.vn/latest-jobs",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "MBBank",
@@ -93,7 +118,9 @@
       "url": "https://careers.mbbank.com.vn/libra-job-management/public/recruitment-news?workGroupId=&name=&skillTags=&city=&size=100&page=0&type=HO&region=TX104&subRegion=&typicalSkills=&currentProvinceCode=&permanentProvinceCode=",
       "listing_url": "https://careers.mbbank.com.vn/list-of-posts?type=HO&region=TX104",
       "job_url_template": "https://careers.mbbank.com.vn/list-of-posts/detail-list-of-posts?id={id}&workGroupId={workGroupId}",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "TPBank",
@@ -102,7 +129,9 @@
       "url": "https://centralize-api-v2.iviec.vn/api/recruitment/Recruitment/GetRecruitmentsByDomain?pageIndex=1&pageSize=100&Domain=tuyendung.tpb.vn",
       "job_url_prefix": "https://tuyendung.tpb.vn/vi/jobs/",
       "listing_url": "https://tuyendung.tpb.vn/vi",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "SunPhuQuoc Airways",
@@ -111,7 +140,9 @@
       "url": "https://centralize-api-v2.iviec.vn/api/recruitment/Recruitment/GetRecruitmentsByDomain?pageIndex=1&pageSize=100&Domain=talent.sunphuquocairways.com",
       "job_url_prefix": "https://talent.sunphuquocairways.com/vi/jobs/",
       "listing_url": "https://talent.sunphuquocairways.com/vi/jobs",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "LPBank",
@@ -120,7 +151,9 @@
       "url": "https://centralize-api-v2.iviec.vn/api/recruitment/Recruitment/GetRecruitmentsByDomain?pageIndex=1&pageSize=100&Domain=tuyendung.lpbank.com.vn",
       "job_url_prefix": "https://tuyendung.lpbank.com.vn/vi/jobs/",
       "listing_url": "https://tuyendung.lpbank.com.vn/vi/jobs",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "BIDV",
@@ -128,10 +161,12 @@
       "type": "bidv_api",
       "url": "https://tuyendung.bidv.com.vn/GetAllTinTuyenDung",
       "listing_url": "https://tuyendung.bidv.com.vn/danh-sach-viec-lam-moi.html",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
-        {
-      "name": "CAEX (VietnamWorks)",
+    {
+      "name": "CAEX   (VietnamWorks)",
       "enabled": true,
       "type": "vietnamworks_company",
       "url": "https://www.vietnamworks.com/nha-tuyen-dung/cong-ty-co-phan-san-giao-dich-tai-san-ma-hoa-viet-nam-thinh-vuong-c413970",
@@ -151,14 +186,28 @@
       "type": "wordpress_posts",
       "url": "https://www.tcex.com.vn/tuyen-dung/",
       "job_url_prefix": "https://www.tcex.com.vn/tuyen-dung/",
-      "location_filter": []
+      "location_filter": [],
+      "timeout": 45
+    },
+    {
+      "name": "NCB Bank",
+      "enabled": true,
+      "type": "iviec_api",
+      "url": "https://centralize-api-v2.iviec.vn/api/recruitment/Recruitment/GetRecruitmentsByDomain?pageIndex=1&pageSize=100&Domain=tuyendung.ncb-bank.vn",
+      "job_url_prefix": "https://tuyendung.ncb-bank.vn/vi/jobs/",
+      "listing_url": "https://tuyendung.ncb-bank.vn/vi/jobs",
+      "location_filter": [
+        "Hà Nội"
+      ]
     },
     {
       "name": "BaoVietBank",
       "enabled": true,
       "type": "baovietbank",
       "url": "https://www.baovietbank.vn/tuyen-dung/",
-      "location_filter": ["Hà Nội"]
+      "location_filter": [
+        "Hà Nội"
+      ]
     }
   ]
 }

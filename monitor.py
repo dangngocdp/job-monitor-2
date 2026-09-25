@@ -108,7 +108,7 @@ def send_telegram_message(text: str) -> bool:
 # Tien ich chung
 # ---------------------------------------------------------------------------
 
-def fetch_html(url: str, verify_ssl: bool = True) -> str:
+def fetch_html(url: str, verify_ssl: bool = True, timeout: int = REQUEST_TIMEOUT) -> str:
     """
     verify_ssl=False: dung khi may chu co chung chi SSL cau hinh thieu sot
     (loi "certificate verify failed" do LOI TU PHIA HO, khong phai loi may
@@ -116,6 +116,10 @@ def fetch_html(url: str, verify_ssl: bool = True) -> str:
     xac minh SSL dong nghia bot khong the chac chan dang noi chuyen dung voi
     may chu that (rui ro rat thap voi trang chi doc du lieu cong khai nhu
     o day, nhung van la mot su danh doi bao mat can luu y).
+
+    timeout: so giay toi da cho phan hoi. Tang len cho site tai cham (vd
+    dat "timeout": 40 trong config.json cua site do) neu hay bi loi
+    "Read timed out" du website van hoat dong binh thuong.
     """
     if not verify_ssl:
         # Tat canh bao "InsecureRequestWarning" de khong lam nhieu log
@@ -123,7 +127,7 @@ def fetch_html(url: str, verify_ssl: bool = True) -> str:
             requests.packages.urllib3.exceptions.InsecureRequestWarning
         )
     resp = requests.get(
-        url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT, verify=verify_ssl
+        url, headers=REQUEST_HEADERS, timeout=timeout, verify=verify_ssl
     )
     resp.raise_for_status()
     return resp.text
@@ -693,6 +697,49 @@ def parse_wordpress_posts(html: str, site: dict) -> list:
 
     return list(jobs.values())
 
+
+def parse_table_row_jobs(html: str, site: dict) -> list:
+    """
+    Parser TONG QUAT cho cac trang tuyen dung dang <table> (vd: BaoVietBank).
+    Co the tai dung cho site tuong tu sau nay CHI BANG CACH sua config.json,
+    khong can code moi.
+
+    Can khai bao "job_id_pattern" trong config.json: 1 bieu thuc regex de
+    nhan dien link tung tin va lay ID duy nhat tu do (vd: "jobID=(\\d+)").
+
+    Dia diem doc tu toan bo dong (<tr>) chua link do -> dung cho bo loc
+    dia diem ma khong can mo them trang nao khac.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    pattern = re.compile(site["job_id_pattern"])
+
+    jobs = {}
+    for a_tag in soup.find_all("a", href=True):
+        href = urljoin(site["url"], a_tag["href"].strip())
+        m = pattern.search(href)
+        if not m:
+            continue
+
+        job_id = m.group(1)
+        title = a_tag.get_text(strip=True)
+        if not title:
+            continue
+
+        row = a_tag.find_parent("tr")
+        location_text = row.get_text(" | ", strip=True) if row else ""
+
+        if job_id not in jobs or len(title) > len(jobs[job_id]["title"]):
+            jobs[job_id] = {
+                "id": job_id,
+                "title": title,
+                "url": href,
+                "location_text": location_text,
+                "needs_detail_fetch_for_location": False,
+            }
+
+    return list(jobs.values())
+
+
 BAOVIETBANK_JOB_PATTERN = re.compile(r"[?&]jobID=(\d+)")
 
 
@@ -735,6 +782,8 @@ def parse_baovietbank(html: str, site: dict) -> list:
             }
 
     return list(jobs.values())
+
+
 PARSERS = {
     "base_ehiring": parse_base_ehiring,
     "successfactors": parse_successfactors,
@@ -749,6 +798,7 @@ PARSERS = {
     "topcv_company": parse_topcv_company,
     "wordpress_posts": parse_wordpress_posts,
     "baovietbank": parse_baovietbank,
+    "table_row_jobs": parse_table_row_jobs,
 }
 
 DETAIL_LOCATION_FETCHERS = {
@@ -792,27 +842,71 @@ def process_site(site: dict, history: dict) -> bool:
         )
         return False
 
-    logger.info("[%s] Dang tai trang: %s", name, site.get("url"))
     verify_ssl = site.get("verify_ssl", True)
-    try:
-        html = fetch_html(site["url"], verify_ssl=verify_ssl)
-    except requests.RequestException as exc:
-        logger.error("[%s] Khong tai duoc trang web: %s", name, exc)
-        send_telegram_message(
-            f"⚠️ <b>{name}</b>\nKhong the tai website de kiem tra tin tuyen dung.\n"
-            f"Loi: {exc}"
-        )
-        return False
+    timeout = site.get("timeout", REQUEST_TIMEOUT)
+    max_pages = site.get("max_pages", 1)
+    page_param = site.get("page_param", "page")
 
-    try:
-        jobs = parser(html, site)
-    except Exception as exc:  # noqa: BLE001
-        logger.error("[%s] Loi khi phan tich HTML: %s", name, exc)
-        send_telegram_message(
-            f"⚠️ <b>{name}</b>\nCo loi khi phan tich noi dung website (co the web da "
-            f"thay doi giao dien). Can kiem tra lai script.\nLoi: {exc}"
-        )
-        return False
+    base_url = site["url"]
+    jobs_by_id = {}
+
+    for page_num in range(1, max_pages + 1):
+        if page_num == 1:
+            page_url = base_url
+        else:
+            sep = "&" if "?" in base_url else "?"
+            page_url = f"{base_url}{sep}{page_param}={page_num}"
+
+        logger.info("[%s] Dang tai trang %d/%d: %s", name, page_num, max_pages, page_url)
+        try:
+            html = fetch_html(page_url, verify_ssl=verify_ssl, timeout=timeout)
+        except requests.RequestException as exc:
+            if page_num == 1:
+                # Trang dau tien la bat buoc - khong tai duoc thi coi nhu that bai toan bo
+                logger.error("[%s] Khong tai duoc trang web: %s", name, exc)
+                send_telegram_message(
+                    f"⚠️ <b>{name}</b>\nKhong the tai website de kiem tra tin tuyen dung.\n"
+                    f"Loi: {exc}"
+                )
+                return False
+            # Cac trang sau (2, 3...) that bai thi chi bo qua, van dung ket qua da co
+            logger.warning(
+                "[%s] Khong tai duoc trang %d (%s). Bo qua trang nay, van tiep tuc voi "
+                "du lieu da thu duoc.", name, page_num, exc,
+            )
+            break
+
+        try:
+            page_jobs = parser(html, site)
+        except Exception as exc:  # noqa: BLE001
+            if page_num == 1:
+                logger.error("[%s] Loi khi phan tich HTML: %s", name, exc)
+                send_telegram_message(
+                    f"⚠️ <b>{name}</b>\nCo loi khi phan tich noi dung website (co the web da "
+                    f"thay doi giao dien). Can kiem tra lai script.\nLoi: {exc}"
+                )
+                return False
+            logger.warning("[%s] Loi phan tich trang %d (%s). Bo qua trang nay.", name, page_num, exc)
+            break
+
+        if page_num > 1 and len(page_jobs) == 0:
+            # Het du lieu (da quet qua trang cuoi) -> dung vong lap som
+            logger.info("[%s] Trang %d khong co tin nao -> da het du lieu, dung phan trang.", name, page_num)
+            break
+
+        new_on_this_page = 0
+        for job in page_jobs:
+            if job["id"] not in jobs_by_id:
+                jobs_by_id[job["id"]] = job
+                new_on_this_page += 1
+
+        if page_num > 1 and new_on_this_page == 0:
+            # Trang nay khong co ID nao moi so voi cac trang truoc -> co the da
+            # quay vong hoac trang khong ho tro phan trang that su, dung lai.
+            logger.info("[%s] Trang %d khong co ID moi -> dung phan trang.", name, page_num)
+            break
+
+    jobs = list(jobs_by_id.values())
 
     logger.info("[%s] Tim thay %d tin tuyen dung tren trang.", name, len(jobs))
 
