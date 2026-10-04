@@ -18,10 +18,14 @@ Cac "type" website dang ho tro (xem PARSERS o cuoi file):
 - msb                   : nen tang PhenomPeople cua MSB
 - mbbank_api            : API JSON rieng cua MBBank
 - talentnetwork         : nen tang Talentnetwork/CareerViet      - vd: SHB, PVcomBank, BacA Bank
-- iviec_api             : nen tang iviec.vn                      - vd: TPBank, SunPhuQuoc Airways, LPBank
+- iviec_api             : nen tang iviec.vn / ainavi.com.vn       - vd: TPBank, SunPhuQuoc Airways, LPBank, NCB Bank
 - bidv_api              : API JSON rieng cua BIDV
 - vietnamworks_company  : trang cong ty tren VietnamWorks (dung chung cho nhieu cong ty) - vd: VietinBank, NCB
 - seabank_api           : nen tang rieng cua SeABank
+- topcv_company         : trang cong ty tren TopCV
+- wordpress_posts       : trang tuyen dung dang WordPress custom post - vd: TCBS, TCEX
+- baovietbank           : trang rieng cua BaoVietBank
+- table_row_jobs        : parser tong quat cho trang dang <table>, dieu khien hoan toan qua config.json
 
 Them website MOI cung nen tang voi 1 trong cac loai tren -> chi can them block
 trong config.json, KHONG can sua file nay.
@@ -422,8 +426,8 @@ def parse_talentnetwork(html: str, site: dict) -> list:
 
 def parse_iviec_api(html: str, site: dict) -> list:
     """
-    Nen tang iviec.vn (centralize-api-v2.iviec.vn) - vd: TPBank,
-    SunPhuQuoc Airways, LPBank, VietABank.
+    Nen tang iviec.vn / ainavi.com.vn (centralize-api.ainavi.com.vn) - vd:
+    TPBank, SunPhuQuoc Airways, LPBank, NCB Bank, VietABank.
 
     "url" trong config.json la duong dan API. "job_url_prefix" la duong dan
     trang web cong khai de ghep voi slug thanh link cho tung tin.
@@ -656,7 +660,7 @@ def parse_topcv_company(html: str, site: dict) -> list:
 
 def parse_wordpress_posts(html: str, site: dict) -> list:
     """
-    Trang tuyen dung dang WordPress custom post type - vd: TCEX.
+    Trang tuyen dung dang WordPress custom post type - vd: TCEX, TCBS.
 
     Nhan dien: moi tin la 1 the <a href="<domain>/<slug-thu-muc>/<slug-tin>/">
     voi "job_url_prefix" khai bao truoc trong config.json. Vi WordPress
@@ -823,6 +827,25 @@ def location_matches_filter(location_text: str, location_filter: list, mode: str
 
 
 # ---------------------------------------------------------------------------
+# Phan trang: xay dung URL cho tung trang, co the THAY THE tham so trang co
+# san trong URL goc (vd MBBank co san "page=0") thay vi gan them 1 tham so
+# "page" thu hai gay trung lap/sai.
+# ---------------------------------------------------------------------------
+
+def build_page_url(base_url: str, page_param: str, page_value) -> str:
+    """
+    Neu base_url DA CO san "<page_param>=<gia tri cu>" (vd MBBank co san
+    "page=0" trong URL goc) -> THAY THE gia tri do bang page_value.
+    Neu chua co -> noi them vao cuoi URL (nhu truoc).
+    """
+    existing_param_pattern = re.compile(rf"([?&]{re.escape(page_param)}=)\d*")
+    if existing_param_pattern.search(base_url):
+        return existing_param_pattern.sub(rf"\g<1>{page_value}", base_url)
+    sep = "&" if "?" in base_url else "?"
+    return f"{base_url}{sep}{page_param}={page_value}"
+
+
+# ---------------------------------------------------------------------------
 # Xu ly logic chinh cho 1 site
 # ---------------------------------------------------------------------------
 
@@ -846,16 +869,23 @@ def process_site(site: dict, history: dict) -> bool:
     timeout = site.get("timeout", REQUEST_TIMEOUT)
     max_pages = site.get("max_pages", 1)
     page_param = site.get("page_param", "page")
+    # page_start: gia tri trang DAU TIEN dung trong URL. Mac dinh 1 (kieu
+    # "page=1, page=2..."). Dat page_start=0 cho site danh so trang tu 0
+    # (vd MBBank dung san "page=0" trong URL goc cho trang dau).
+    page_start = site.get("page_start", 1)
 
     base_url = site["url"]
     jobs_by_id = {}
 
-    for page_num in range(1, max_pages + 1):
-        if page_num == 1:
+    for page_offset in range(max_pages):
+        page_num = page_offset + 1  # 1-indexed, chi dung de log/dem vong lap
+        page_value = page_start + page_offset
+
+        if page_offset == 0 and page_param not in base_url:
+            # Trang dau tien, URL goc chua co san tham so trang -> dung nguyen URL goc
             page_url = base_url
         else:
-            sep = "&" if "?" in base_url else "?"
-            page_url = f"{base_url}{sep}{page_param}={page_num}"
+            page_url = build_page_url(base_url, page_param, page_value)
 
         logger.info("[%s] Dang tai trang %d/%d: %s", name, page_num, max_pages, page_url)
         try:
