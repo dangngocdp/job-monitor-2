@@ -19,7 +19,7 @@
       "name": "Techcombank",
       "enabled": true,
       "type": "successfactors",
-      "url": "https://www.techcombankjobs.com/search/?q=&location=Ha+Noi&sortColumn=referencedate&sortDirection=desc",
+            "url": "https://www.techcombankjobs.com/search/?q=&sortColumn=referencedate&sortDirection=desc",
       "location_filter": ["Ha Noi"]
     },
     {
